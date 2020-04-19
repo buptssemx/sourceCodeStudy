@@ -84,18 +84,19 @@ class HD {
           onFulfilled:value=>{
             try{
               let result = onFulfilled(value)
-              if(result === promise) {
-                throw new TypeError('chaining cycle detected')
-              }
-              if(result instanceof HD) {
-                result.then(value=> {
-                  resolve(value)
-                },reason=>{
-                  reject(reason)
-                })
-              } else {
-                resolve(result)
-              }
+              // if(result === promise) {
+              //   throw new TypeError('chaining cycle detected')
+              // }
+              // if(result instanceof HD) {
+              //   result.then(value=> {
+              //     resolve(value)
+              //   },reason=>{
+              //     reject(reason)
+              //   })
+              // } else {
+              //   resolve(result)
+              // }
+              this.parse(promise,result,resolve,reject)
             } catch(error) {
               // 解决新promise状态是reject的情况
               // 非链式时调用的是onRejected
@@ -105,18 +106,7 @@ class HD {
           onRejected:reason=>{
             try{
               let result = onRejected(reason)
-              if(result === hd2) {
-                throw new TypeError('chaining cycle detected')
-              }
-              if(result instanceof HD) {
-                result.then(value=> {
-                  resolve(value)
-                },reason=>{
-                  reject(reason)
-                })
-              } else {
-                resolve(result)
-              }
+              this.parse(promise,result,resolve,reject)
             } catch(error) {
               reject(error)
             }
@@ -133,20 +123,7 @@ class HD {
             // 判断是否是自己返回了一个promise
             // 保证下一个promise可以接到上一个promise的返回值
             let result = onFulfilled(this.value)
-            if(result === promise) {
-              throw new TypeError('chaining cycle detected')
-            }
-            if(result instanceof HD) {
-              // result.then(value=> {
-              //   resolve(value)
-              // },reason=>{
-              //   reject(reason)
-              // })
-              // 上面代码简写形式
-              result.then(resolve,reject)
-            } else {
-              resolve(result)
-            } 
+            this.parse(promise,result,resolve,reject)
           } catch(error) {
             reject(error)
           }
@@ -156,15 +133,7 @@ class HD {
         setTimeout(()=> {
           try{
             let result = onRejected(this.value)
-            if(result instanceof HD) {
-              result.then(value=> {
-                resolve(value)
-              },reason=>{
-                reject(reason)
-              })
-            } else {
-              resolve(result)
-            }
+            this.parse(promise,result,resolve,reject)
           } catch(error) {
             reject(error)
           }
@@ -172,6 +141,24 @@ class HD {
       }
     })
     return promise
+  }
+  
+  /**
+   * 提取冗余代码 统一先判断是否返回了自身 在判断是否返回了promise 如果不是promise直接resolve 是promise就调用then方法
+   * @param {*} promise then中返回的promise
+   * @param {*} result  自身返回的结果
+   * @param {*} resolve then中返回的promise的resolve
+   * @param {*} reject  then中返回promise的reject
+   */
+  parse(promise,result,resolve,reject){
+    if(result === promise) {
+      throw new TypeError('cycle chain detected')
+    }
+    if(result instanceof HD) {
+      result.then(resolve,reject)
+    } else {
+      resolve(result)
+    }
   }
 
   /**
