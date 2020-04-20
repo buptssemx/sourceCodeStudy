@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script>
+    Function.prototype.mycall = function(context) {
+      context = context?context:window
+      let fn = Symbol()
+      context[fn] = this
+      let args = [...arguments].slice(1)
+      const result = context[fn](args)
+      delete context[fn]
+      return result
+    }
+    let person = {
+      name: '111',
+      say() {
+        console.log(this.name)
+      }
+    }
+    let person1 = {
+      name: '222'
+    }
+    person.say.mycall(person1)
+  </script>
+</body>
+</html>
